@@ -7,6 +7,7 @@
 // surfaced — because the caller is doing a best-effort scan.
 
 import { randomBytes } from "node:crypto";
+import type { Dirent } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
@@ -82,9 +83,9 @@ async function* walkJsonlImpl(
   dir: string,
   visited: Set<string>,
 ): AsyncGenerator<string> {
-  let entries: Awaited<ReturnType<typeof fs.readdir>>;
+  let entries: Dirent[];
   try {
-    entries = await fs.readdir(dir, { withFileTypes: true });
+    entries = (await fs.readdir(dir, { withFileTypes: true })) as Dirent[];
   } catch {
     return;
   }
