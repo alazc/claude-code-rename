@@ -112,7 +112,11 @@ You don't pick the mode — it's determined by what's on disk. The dry-run previ
 
 `claude-code-rename` targets Claude Code's current on-disk project layout. If a future CC release changes the schema (e.g. adds escaping for unicode in the encoder, or moves the `cwd` field inside event lines), the tool will detect the mismatch on scan and refuse to run rather than corrupt data. The README's version pin below tells you what release we last verified against.
 
-**Verified against Claude Code: v\<X.Y.Z\>** *(update after each release where you re-test)*
+**Verified against Claude Code: v2.1.139** *(update after each release where you re-test)*
+
+Empirical verification against this CC version:
+- 63 encoder entries captured from a real `~/.claude/projects/` and committed as `test/fixtures/encode-truth-table.json`. The encoder rule `:`, `\`, `/`, ` `, `_` → `-` passes all 63.
+- End-to-end migration of a real 0.8 MB transcript pair (444 path substitutions) with byte-identical source preservation. See the "Two modes" section above.
 
 ## Contributing
 

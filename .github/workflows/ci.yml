@@ -31,3 +31,11 @@ jobs:
       - run: npm run typecheck
 
       - run: npm test
+
+      # Smoke check: dist/ actually emits to the path bin/ccr.js imports,
+      # and the CLI invokes cleanly. Catches build-output drift (e.g. a
+      # tsconfig rootDir change that silently moves dist/cli.js elsewhere)
+      # which typecheck + tests would miss because they run via tsx.
+      - run: npm run build
+      - run: node bin/ccr.js --version
+      - run: node bin/ccr.js --help
