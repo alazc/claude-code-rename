@@ -1,0 +1,8 @@
+{"type":"last-prompt","sessionId":"00000000-0000-0000-0000-000000000002","timestamp":"2026-01-16T11:00:00.000Z","prompt":"another synthetic prompt"}
+{"event":"session-start","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-16T11:00:01.000Z","sessionId":"00000000-0000-0000-0000-000000000002","gitBranch":"main"}
+{"event":"user-message","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-16T11:00:05.000Z","message":{"role":"user","content":[{"type":"text","text":"read the file C:\\fake\\project\\path\\README.md please"}]}}
+{"event":"tool-use","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-16T11:00:06.000Z","message":{"role":"assistant","content":[{"type":"tool_use","name":"Read","input":{"file_path":"C:\\fake\\project\\path\\README.md"}}]}}
+{"event":"tool-result","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-16T11:00:07.000Z","toolUseResult":{"file":{"filePath":"C:\\fake\\project\\path\\README.md","content":"# fake project\n\nThis is at C:\\fake\\project\\path. See also C:\\fake\\project\\path\\src for code."}}}
+{"event":"tool-use","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-16T11:00:08.000Z","message":{"role":"assistant","content":[{"type":"tool_use","name":"Glob","input":{"path":"C:\\fake\\project\\path","pattern":"**/*.ts"}}]}}
+{"event":"assistant-message","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-16T11:00:12.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Done reading C:\\fake\\project\\path\\README.md"}]}}
+{"event":"session-end","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-16T11:30:00.000Z"}

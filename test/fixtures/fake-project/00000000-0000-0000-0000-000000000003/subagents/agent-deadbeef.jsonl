@@ -1,0 +1,3 @@
+{"type":"last-prompt","sessionId":"00000000-0000-0000-0000-000000000003","agentId":"agent-deadbeef","timestamp":"2026-01-17T12:00:00.000Z","prompt":"subagent synthetic task"}
+{"event":"session-start","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-17T12:00:01.000Z","sessionId":"00000000-0000-0000-0000-000000000003","agentId":"agent-deadbeef","isSidechain":true}
+{"event":"tool-result","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-17T12:00:05.000Z","toolUseResult":{"stdout":"ran in C:\\fake\\project\\path; wrote C:\\fake\\project\\path\\out.txt","stderr":""}}
