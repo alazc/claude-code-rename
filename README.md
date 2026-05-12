@@ -129,6 +129,18 @@ The encoder lives in `src/encode.ts` and is property-tested with `fast-check`. T
 - [PROBLEM.md](PROBLEM.md) — the technical spec this implementation is built from.
 - [DESIGN.md](DESIGN.md) — the architectural design doc, including premises and reviewed alternatives.
 
+## Releasing
+
+Publishing is automated. CI runs the full matrix (Ubuntu/macOS/Windows × Node 20/22) on every PR and push to `main`; pushing a `v*` tag triggers `release.yml`, which builds, tests, publishes to npm with provenance, and creates the GitHub Release.
+
+Maintainer steps:
+
+1. Bump `version` in `package.json`.
+2. `git tag v<version>` and `git push --tags`.
+3. CI does the rest.
+
+An `NPM_TOKEN` ([npm automation token](https://docs.npmjs.com/creating-and-viewing-access-tokens)) must be set as a repo secret.
+
 ## License
 
 MIT.
