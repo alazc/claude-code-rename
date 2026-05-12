@@ -23,6 +23,7 @@ import { encodePath, type HostOS } from "./encode.js";
 import {
   rewriteJsonl,
   rewriteSessionsIndex,
+  rewriteSessionsIndexEntries,
   OriginalPathMismatchError,
   type SessionsIndexWarning,
 } from "./rewrite.js";
@@ -58,9 +59,18 @@ interface ParsedFlags {
   version: boolean;
 }
 
+type ApplyMode = "rename" | "merge";
+
 interface Manifest {
   oldPath: string;
   newPath: string;
+  // Added 2026-05-12: "rename" preserves the original v1 behavior (rename
+  // OLD encoded folder to NEW, in-place jsonl rewrites). "merge" is the
+  // fork semantic used when NEW encoded folder already exists on disk —
+  // source folder is kept intact, source jsonls are COPIED (rewritten)
+  // into NEW, sessions-index entries are concatenated. Legacy manifests
+  // without this field are treated as "rename" for backward compat.
+  mode?: ApplyMode;
   intendedFiles: string[];
   completedFiles: string[];
   indexRewritten: boolean;
@@ -88,7 +98,7 @@ Usage:
 Exit codes:
   0  success / dry-run / nothing to do
   1  user error (bad args, CC running)
-  2  refuse to clobber non-empty NEW folder
+  2  (reserved — was refuse-to-clobber pre-merge-mode; no longer emitted)
   3  internal error
   4  filesystem precondition not met
 `;
@@ -328,6 +338,12 @@ async function runRename(
     return 4;
   }
 
+  // Determine apply mode BEFORE the CC-running probe so we can probe both
+  // folders in merge mode (CC could be active in either project).
+  const newExistsForMode = await pathExists(newFolder);
+  const sameAsOldForMode = pathsEqualForOS(path.resolve(oldFolder), path.resolve(newFolder));
+  const mode: ApplyMode = newExistsForMode && !sameAsOldForMode ? "merge" : "rename";
+
   // Gate 6: CC running probe (do it early so we don't preflight-spam if CC is up)
   const ccRunningCheck = await detectRunningCC(oldFolder);
   if (ccRunningCheck.running) {
@@ -335,6 +351,15 @@ async function runRename(
       `ccr: Claude Code appears to be running (${ccRunningCheck.evidence}). Close all CC instances and re-run.\n`,
     );
     return 1;
+  }
+  if (mode === "merge") {
+    const ccProbeNew = await detectRunningCC(newFolder);
+    if (ccProbeNew.running) {
+      io.stderr.write(
+        `ccr: Claude Code appears to be running in NEW project (${ccProbeNew.evidence}). Close all CC instances and re-run.\n`,
+      );
+      return 1;
+    }
   }
 
   // Walk jsonl files now to support gates 4/5 and the manifest's intendedFiles.
@@ -371,21 +396,29 @@ async function runRename(
     }
   }
 
-  // Gate 7: refuse-to-clobber with auto-merge (A4)
-  let autoMergeNote: string | null = null;
-  const newExists = await pathExists(newFolder);
-  // Special case: if oldFolder and newFolder resolve to the same path on a
-  // case-insensitive FS (case-only rename), don't classify NEW as colliding.
-  const sameAsOld = pathsEqualForOS(path.resolve(oldFolder), path.resolve(newFolder));
-  if (newExists && !sameAsOld) {
-    const classification = await classifyNewFolder(newFolder);
-    if (classification.kind === "fresh-cc-restart") {
-      autoMergeNote = `Auto-merging empty NEW folder ${newFolder}${classification.detail ? ` (${classification.detail})` : ""}`;
-    } else {
+  // Merge-mode preflight: when NEW encoded folder already exists, we MERGE
+  // (copy + rewrite source jsonls INTO destination; keep source intact;
+  // concatenate sessions-index entries). This supersedes amendment A4's
+  // delete-then-rename heuristic; no fresh-cc-restart 24h check is performed.
+  let mergeInfo: MergeInfo | null = null;
+  if (mode === "merge") {
+    mergeInfo = await prepareMergeInfo(oldFolder, newFolder, intendedFiles);
+    if (mergeInfo.collisions.length > 0) {
+      const sample = mergeInfo.collisions[0]!;
       io.stderr.write(
-        `ccr: NEW folder already has transcripts: ${newFolder}. Manual merge required.\n`,
+        `ccr: destination already has file with same relative path: ${sample}. Manual resolution required (rename or remove the destination file).\n`,
       );
-      return 2;
+      return 4;
+    }
+    // Encoder-sanity on destination's existing jsonls: if NEW's own jsonls
+    // claim a cwd that doesn't encode to NEW_ENCODED, something is off with
+    // the destination folder itself (e.g. CC schema drift).
+    if (mergeInfo.destJsonls.length > 0) {
+      const destSanity = await verifyEncoderSanity(mergeInfo.destJsonls, newEncoded, null);
+      if (!destSanity.ok) {
+        io.stderr.write(`ccr: destination ${destSanity.message}\n`);
+        return 4;
+      }
     }
   }
 
@@ -417,6 +450,16 @@ async function runRename(
       );
       return 4;
     }
+    // Mode mismatch: manifest was created in one mode but destination state
+    // now suggests the other. Protects against destination being created
+    // (or deleted) between the crash and the resume.
+    const manifestMode: ApplyMode = existingManifest.mode ?? "rename";
+    if (manifestMode !== mode) {
+      io.stderr.write(
+        `ccr: stale manifest detected at ${manifestPath}: was created in "${manifestMode}" mode but destination state suggests "${mode}" mode now. Delete the manifest or restore the destination folder.\n`,
+      );
+      return 4;
+    }
   }
 
   // Build dry-run preview by walking files
@@ -429,7 +472,8 @@ async function runRename(
     oldFolder,
     newFolder,
     preview,
-    autoMergeNote,
+    mode,
+    mergeInfo,
     oldSubstringOfNew,
     backupInfo,
     isApply: flags.apply,
@@ -487,7 +531,8 @@ async function runRename(
     intendedFiles,
     manifestPath,
     existingManifest,
-    autoMergeNote,
+    mode,
+    mergeInfo,
     backup: flags.backup,
     backupInfo,
   });
@@ -505,22 +550,26 @@ interface ApplyParams {
   intendedFiles: string[];
   manifestPath: string;
   existingManifest: Manifest | null;
-  autoMergeNote: string | null;
+  mode: ApplyMode;
+  mergeInfo: MergeInfo | null;
   backup: boolean;
   backupInfo: BackupInfo | null;
 }
 
 async function applySequence(p: ApplyParams): Promise<number> {
-  const { io } = p;
-
-  // Initialize / load manifest
+  // Initialize / load manifest. New manifests record the current mode so
+  // future resumes can detect destination-state drift via the mode-mismatch
+  // gate in runRename.
   let manifest: Manifest;
   if (p.existingManifest) {
     manifest = p.existingManifest;
+    // Backfill mode if a legacy manifest is missing it.
+    if (!manifest.mode) manifest.mode = p.mode;
   } else {
     manifest = {
       oldPath: p.oldPath,
       newPath: p.newPath,
+      mode: p.mode,
       intendedFiles: p.intendedFiles,
       completedFiles: [],
       indexRewritten: false,
@@ -529,18 +578,22 @@ async function applySequence(p: ApplyParams): Promise<number> {
     await atomicWrite(p.manifestPath, JSON.stringify(manifest, null, 2));
   }
 
+  if (p.mode === "merge") {
+    return await applyMergeSequence(p, manifest);
+  }
+  return await applyRenameSequence(p, manifest);
+}
+
+async function applyRenameSequence(p: ApplyParams, manifest: Manifest): Promise<number> {
+  const { io } = p;
+
   // Backup
   if (p.backup) {
     const dest = await backupProjectFolder(p.oldFolder);
     io.stderr.write(`ccr: backed up to ${dest}\n`);
   }
 
-  // Auto-merge: delete the empty NEW folder before rename
-  if (p.autoMergeNote) {
-    await fsp.rm(p.newFolder, { recursive: true, force: true });
-  }
-
-  // Rewrite jsonl files
+  // Rewrite jsonl files in place
   const completed = new Set(manifest.completedFiles);
   let totalOccurrences = 0;
   let rewrittenCount = 0;
@@ -558,7 +611,7 @@ async function applySequence(p: ApplyParams): Promise<number> {
     await atomicWrite(p.manifestPath, JSON.stringify(manifest, null, 2));
   }
 
-  // sessions-index.json
+  // sessions-index.json in place
   const indexPath = path.join(p.oldFolder, SESSIONS_INDEX);
   if (await pathExists(indexPath)) {
     if (!manifest.indexRewritten) {
@@ -590,10 +643,9 @@ async function applySequence(p: ApplyParams): Promise<number> {
     }
   }
 
-  // Folder rename. Delete manifest BEFORE rename so the manifest never moves
-  // with the folder (the manifest path is rooted at oldFolder; if rename
-  // succeeds, we're done, and if it fails, the next dry-run will see no
-  // manifest and a not-yet-renamed folder — harmless rerun.)
+  // Folder rename. Delete manifest BEFORE rename so it never moves with the
+  // folder. If rename fails, next run sees no manifest + not-yet-renamed
+  // folder — harmless rerun.
   await fsp.unlink(p.manifestPath).catch(() => {});
 
   const caseInsensitive = await isCaseInsensitiveFS(p.projectsDir).catch(() => false);
@@ -616,6 +668,139 @@ async function applySequence(p: ApplyParams): Promise<number> {
       `Renamed ${p.oldEncoded} -> ${p.newEncoded}.\n`,
   );
   return 0;
+}
+
+async function applyMergeSequence(p: ApplyParams, manifest: Manifest): Promise<number> {
+  const { io } = p;
+  if (!p.mergeInfo) {
+    io.stderr.write("ccr: internal error: merge mode invoked without mergeInfo.\n");
+    return 3;
+  }
+  const merge = p.mergeInfo;
+
+  // Backup BOTH folders — both will change in merge mode.
+  if (p.backup) {
+    const destOld = await backupProjectFolder(p.oldFolder);
+    io.stderr.write(`ccr: backed up source to ${destOld}\n`);
+    const destNew = await backupProjectFolder(p.newFolder);
+    io.stderr.write(`ccr: backed up destination to ${destNew}\n`);
+  }
+
+  // Copy + rewrite each source jsonl into its destPath. Track completion by
+  // destPath (the file we actually wrote). Source jsonls are never modified.
+  const completed = new Set(manifest.completedFiles);
+  let totalOccurrences = 0;
+  let copiedCount = 0;
+  for (const sourcePath of manifest.intendedFiles) {
+    const destPath = sourceToDestPath(sourcePath, p.oldFolder, p.newFolder);
+    if (completed.has(destPath)) continue;
+
+    // Ensure parent dir exists (subagents/ subdirs may not be in destination yet).
+    await fsp.mkdir(path.dirname(destPath), { recursive: true });
+
+    const content = await fsp.readFile(sourcePath, "utf8");
+    const { newContent, occurrences } = rewriteJsonl(content, p.oldPath, p.newPath);
+    await atomicWrite(destPath, newContent);
+    totalOccurrences += occurrences;
+    copiedCount += 1;
+    completed.add(destPath);
+    manifest.completedFiles = [...completed];
+    await atomicWrite(p.manifestPath, JSON.stringify(manifest, null, 2));
+  }
+
+  // Merge sessions-index.json: take destination's existing entries (already
+  // correctly point at NEW) and concatenate the source's rewritten entries.
+  // The merged index's originalPath is NEW_PATH.
+  const sourceIndexPath = path.join(p.oldFolder, SESSIONS_INDEX);
+  const destIndexPath = path.join(p.newFolder, SESSIONS_INDEX);
+  let mergedExisting = 0;
+  let mergedMigrated = 0;
+  if (!manifest.indexRewritten) {
+    const haveSource = await pathExists(sourceIndexPath);
+    const haveDest = await pathExists(destIndexPath);
+    if (haveSource || haveDest) {
+      // Read each (if present).
+      let destEntries: unknown[] = [];
+      let destVersion: number | undefined;
+      if (haveDest) {
+        try {
+          const rawDest = await fsp.readFile(destIndexPath, "utf8");
+          const parsed = JSON.parse(rawDest) as { version?: unknown; entries?: unknown };
+          if (Array.isArray(parsed.entries)) destEntries = parsed.entries;
+          if (typeof parsed.version === "number") destVersion = parsed.version;
+        } catch {
+          // Malformed destination index — treat as no entries.
+        }
+      }
+      mergedExisting = destEntries.length;
+
+      let migratedEntries: unknown[] = [];
+      let sourceVersion: number | undefined;
+      if (haveSource) {
+        try {
+          const rawSource = await fsp.readFile(sourceIndexPath, "utf8");
+          const rewritten = rewriteSessionsIndexEntries(
+            rawSource,
+            p.oldPath,
+            p.newPath,
+            p.oldEncoded,
+            p.newEncoded,
+          );
+          migratedEntries = rewritten.entries as unknown[];
+          sourceVersion = rewritten.version;
+          for (const w of rewritten.warnings) {
+            io.stderr.write(
+              `ccr: warning — sessions-index entry[${w.entryIndex}].${w.field} = "${w.observed}" did not match OLD or NEW (left as-is).\n`,
+            );
+          }
+        } catch {
+          // Malformed source index — skip; the merge still proceeds.
+        }
+      }
+      mergedMigrated = migratedEntries.length;
+
+      const version =
+        typeof destVersion === "number" && typeof sourceVersion === "number"
+          ? Math.max(destVersion, sourceVersion)
+          : (destVersion ?? sourceVersion ?? 1);
+
+      const mergedIndex = {
+        version,
+        originalPath: p.newPath,
+        entries: [...destEntries, ...migratedEntries],
+      };
+      await atomicWrite(destIndexPath, JSON.stringify(mergedIndex, null, 2));
+    }
+    manifest.indexRewritten = true;
+    await atomicWrite(p.manifestPath, JSON.stringify(manifest, null, 2));
+  }
+
+  // Clean up the source manifest. Source folder itself is kept intact.
+  await fsp.unlink(p.manifestPath).catch(() => {});
+
+  io.stdout.write(
+    `Merged ${copiedCount} file(s) from ${p.oldEncoded} into ${p.newEncoded} ` +
+      `(${totalOccurrences} total substitutions).\n`,
+  );
+  if (mergedExisting > 0 || mergedMigrated > 0) {
+    io.stdout.write(
+      `Sessions-index merged: ${mergedExisting} existing + ${mergedMigrated} migrated = ${mergedExisting + mergedMigrated} entries.\n`,
+    );
+  }
+  io.stdout.write(
+    `Source folder ${p.oldEncoded} left intact. ` +
+      `Run \`claude\` in ${path.normalize(p.oldPath)} to continue using its history independently.\n`,
+  );
+  // Note: mergeInfo's count of destination jsonls preserved is reported in the
+  // dry-run preview, not the success summary, since the destination's files
+  // are unchanged by the merge.
+  void merge;
+  return 0;
+}
+
+function sourceToDestPath(sourcePath: string, oldFolder: string, newFolder: string): string {
+  const rel = path.relative(oldFolder, sourcePath);
+  return path.join(newFolder, rel);
 }
 
 // ---------- gates / helpers ----------
@@ -739,32 +924,36 @@ async function readFirstCwd(jsonlPath: string): Promise<string | null> {
   return null;
 }
 
-interface NewFolderClassification {
-  kind: "fresh-cc-restart" | "non-empty";
-  detail?: string;
+interface MergeInfo {
+  // jsonl files already in the destination, untouched by the merge but
+  // counted in the preview so the user knows what's preserved.
+  destJsonls: string[];
+  // Destination jsonls that would collide with the source's destPaths
+  // (same relative basename + subpath). Astronomically unlikely for UUID-
+  // named files but failing loudly is the right move.
+  collisions: string[];
 }
 
-async function classifyNewFolder(folder: string): Promise<NewFolderClassification> {
-  const jsonls: string[] = [];
-  for await (const f of walkJsonl(folder)) jsonls.push(f);
-  if (jsonls.length === 0) {
-    return { kind: "fresh-cc-restart", detail: "no jsonl files" };
-  }
-  if (jsonls.length === 1) {
+async function prepareMergeInfo(
+  oldFolder: string,
+  newFolder: string,
+  sourceIntendedFiles: string[],
+): Promise<MergeInfo> {
+  const destJsonls: string[] = [];
+  for await (const f of walkJsonl(newFolder)) destJsonls.push(f);
+  destJsonls.sort();
+
+  const collisions: string[] = [];
+  for (const src of sourceIntendedFiles) {
+    const dest = sourceToDestPath(src, oldFolder, newFolder);
     try {
-      const st = await fsp.stat(jsonls[0]!);
-      const ageMs = Date.now() - st.mtimeMs;
-      if (ageMs < 24 * 60 * 60 * 1000) {
-        return {
-          kind: "fresh-cc-restart",
-          detail: `single jsonl created ${new Date(st.mtimeMs).toISOString()}`,
-        };
-      }
+      await fsp.stat(dest);
+      collisions.push(dest);
     } catch {
-      // fall through
+      // No collision; expected case.
     }
   }
-  return { kind: "non-empty" };
+  return { destJsonls, collisions };
 }
 
 interface OldSubstringOfNewInfo {
@@ -863,7 +1052,8 @@ interface PreviewArgs {
   oldFolder: string;
   newFolder: string;
   preview: PreviewData;
-  autoMergeNote: string | null;
+  mode: ApplyMode;
+  mergeInfo: MergeInfo | null;
   oldSubstringOfNew: OldSubstringOfNewInfo;
   backupInfo: BackupInfo | null;
   isApply: boolean;
@@ -874,9 +1064,20 @@ function emitPreview(stream: NodeJS.WritableStream, args: PreviewArgs): void {
   const tag = args.isApply ? "[apply preview]" : "[dry-run]";
   stream.write(`${tag} OLD: ${path.normalize(args.oldPath)}\n`);
   stream.write(`${tag} NEW: ${path.normalize(args.newPath)}\n`);
-  stream.write(`${tag} folder: ${args.oldFolder} -> ${args.newFolder}\n`);
-  if (args.autoMergeNote) {
-    stream.write(`${tag} ${args.autoMergeNote}\n`);
+  if (args.mode === "merge") {
+    stream.write(
+      `${tag} MERGE mode: destination ${args.newFolder} already exists.\n`,
+    );
+    stream.write(
+      `${tag} Source folder ${args.oldFolder} will be kept intact.\n`,
+    );
+    if (args.mergeInfo) {
+      stream.write(
+        `${tag} Destination has ${args.mergeInfo.destJsonls.length} existing file(s); migration will add ${args.preview.files.length} file(s) from source.\n`,
+      );
+    }
+  } else {
+    stream.write(`${tag} RENAME mode: ${args.oldFolder} -> ${args.newFolder}\n`);
   }
   if (args.oldSubstringOfNew.applies) {
     stream.write(
@@ -894,10 +1095,23 @@ function emitPreview(stream: NodeJS.WritableStream, args: PreviewArgs): void {
   }
   stream.write(`${tag} ${args.preview.files.length} jsonl file(s):\n`);
   for (const f of args.preview.files) {
-    stream.write(`${tag}   ${f.path}: ${f.occurrences} occurrence(s)\n`);
+    if (args.mode === "merge") {
+      const dest = sourceToDestPath(f.path, args.oldFolder, args.newFolder);
+      stream.write(`${tag}   ${f.path} -> ${dest}: ${f.occurrences} occurrence(s)\n`);
+    } else {
+      stream.write(`${tag}   ${f.path}: ${f.occurrences} occurrence(s)\n`);
+    }
   }
   if (args.hasSessionsIndex) {
-    stream.write(`${tag} sessions-index.json: will rewrite originalPath / projectPath / fullPath\n`);
+    if (args.mode === "merge") {
+      stream.write(
+        `${tag} sessions-index.json: source's entries will be concatenated into destination's index.\n`,
+      );
+    } else {
+      stream.write(
+        `${tag} sessions-index.json: will rewrite originalPath / projectPath / fullPath\n`,
+      );
+    }
   }
   stream.write(
     `${tag} total: ${args.preview.totalOccurrences} occurrence(s) across ${args.preview.files.length} file(s)\n`,
@@ -914,7 +1128,9 @@ async function readManifest(p: string): Promise<Manifest | null> {
       Array.isArray(obj.intendedFiles) &&
       Array.isArray(obj.completedFiles) &&
       typeof obj.indexRewritten === "boolean" &&
-      typeof obj.folderRenamed === "boolean"
+      typeof obj.folderRenamed === "boolean" &&
+      // mode is optional for backward compat — legacy manifests are "rename"
+      (obj.mode === undefined || obj.mode === "rename" || obj.mode === "merge")
     ) {
       return obj as Manifest;
     }

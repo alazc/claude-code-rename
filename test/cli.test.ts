@@ -178,23 +178,38 @@ describe("cli: pre-flight gates", () => {
     assert.match(stderr.buf, /OLD_PATH literal not found/);
   });
 
-  it("refuse-to-clobber: NEW folder has real transcripts → exit 2", async () => {
-    // Populate NEW folder with an old jsonl (older than 24h) so it's classified non-empty.
+  it("merge mode: NEW folder with existing non-empty content → fork (no refusal, no deletion)", async () => {
+    // Destination has a real jsonl with an event line bearing the NEW cwd —
+    // mirrors the post-copy-paste case where CC fresh-started in NEW.
     await fsp.mkdir(fake.newFolder, { recursive: true });
     const occupant = path.join(fake.newFolder, "existing.jsonl");
-    await fsp.writeFile(occupant, '{"event":"x"}\n');
-    const oldTime = new Date(Date.now() - 48 * 3600 * 1000);
-    await fsp.utimes(occupant, oldTime, oldTime);
-    const { io, stderr } = makeIO();
+    await fsp.writeFile(
+      occupant,
+      `{"type":"meta"}\n${JSON.stringify({ event: "fresh", cwd: FAKE_NEW })}\n`,
+    );
+
+    const { io, stderr, stdout } = makeIO();
     const code = await main(
-      ["--old", FAKE_CWD, "--new", FAKE_NEW, "--data-dir", fake.root],
+      ["--old", FAKE_CWD, "--new", FAKE_NEW, "--apply", "--yes", "--data-dir", fake.root],
       io,
     );
-    assert.equal(code, 2);
-    assert.match(stderr.buf, /Manual merge required/);
+    assert.equal(code, 0, `expected exit 0, got ${code}; stderr: ${stderr.buf}`);
+    // Source kept intact
+    assert.ok(await pathExists(fake.oldFolder), "source folder must survive merge");
+    // Destination still has its original file
+    assert.ok(await pathExists(occupant), "destination's pre-existing jsonl must survive merge");
+    // Source jsonls now copied to destination
+    const migrated = path.join(
+      fake.newFolder,
+      "00000000-0000-0000-0000-000000000001.jsonl",
+    );
+    assert.ok(await pathExists(migrated), "source jsonl must be copied to destination");
+    // Success summary reports merge semantics
+    assert.match(stdout.buf, /Merged \d+ file\(s\) from .* into /);
+    assert.match(stdout.buf, /Source folder .* left intact/);
   });
 
-  it("auto-merge: NEW folder is empty → dry-run shows note, --apply succeeds", async () => {
+  it("merge mode: NEW folder is empty dir → dry-run shows MERGE mode, --apply succeeds without deletion", async () => {
     await fsp.mkdir(fake.newFolder, { recursive: true });
     // Dry-run first
     {
@@ -204,9 +219,10 @@ describe("cli: pre-flight gates", () => {
         io,
       );
       assert.equal(code, 0);
-      assert.match(stderr.buf, /Auto-merging empty NEW folder/);
+      assert.match(stderr.buf, /MERGE mode: destination .* already exists/);
+      assert.match(stderr.buf, /Source folder .* will be kept intact/);
     }
-    // Now apply
+    // Apply
     {
       const { io } = makeIO();
       const code = await main(
@@ -214,9 +230,69 @@ describe("cli: pre-flight gates", () => {
         io,
       );
       assert.equal(code, 0);
-      assert.ok(await pathExists(fake.newFolder), "renamed folder should exist");
-      assert.ok(!(await pathExists(fake.oldFolder)), "old folder should be gone");
+      assert.ok(await pathExists(fake.newFolder), "destination folder should exist");
+      assert.ok(await pathExists(fake.oldFolder), "source folder should be kept intact");
     }
+  });
+
+  it("merge mode: sessions-index entries are concatenated (destination's + source's)", async () => {
+    // Both folders have sessions-index.json. Concatenation produces M+N entries.
+    await fsp.mkdir(fake.newFolder, { recursive: true });
+    const destIndex = {
+      version: 1,
+      originalPath: FAKE_NEW,
+      entries: [
+        {
+          sessionId: "DEST-A",
+          fullPath: `C:\\\\fake\\\\encoded-projects\\\\C--fake-new-path\\\\DEST-A.jsonl`,
+          projectPath: FAKE_NEW,
+        },
+      ],
+    };
+    await fsp.writeFile(
+      path.join(fake.newFolder, "sessions-index.json"),
+      JSON.stringify(destIndex, null, 2),
+    );
+
+    const { io } = makeIO();
+    const code = await main(
+      ["--old", FAKE_CWD, "--new", FAKE_NEW, "--apply", "--yes", "--data-dir", fake.root],
+      io,
+    );
+    assert.equal(code, 0);
+    const mergedRaw = await fsp.readFile(
+      path.join(fake.newFolder, "sessions-index.json"),
+      "utf8",
+    );
+    const merged = JSON.parse(mergedRaw) as {
+      originalPath: string;
+      entries: Array<{ sessionId?: string; projectPath?: string }>;
+    };
+    assert.equal(merged.originalPath, FAKE_NEW);
+    // Fixture's sessions-index has 3 entries; destination contributed 1; total 4.
+    assert.equal(merged.entries.length, 4);
+    // First entry preserves destination's pre-existing session
+    assert.equal(merged.entries[0]!.sessionId, "DEST-A");
+    // Subsequent entries are the migrated ones, with paths rewritten to NEW
+    assert.equal(merged.entries[1]!.projectPath, FAKE_NEW);
+  });
+
+  it("merge mode: UUID collision in destination → exit 4", async () => {
+    // Plant a file at the same destination path one of source's jsonls would land at.
+    await fsp.mkdir(fake.newFolder, { recursive: true });
+    const collision = path.join(
+      fake.newFolder,
+      "00000000-0000-0000-0000-000000000001.jsonl",
+    );
+    await fsp.writeFile(collision, '{"event":"colliding"}\n');
+
+    const { io, stderr } = makeIO();
+    const code = await main(
+      ["--old", FAKE_CWD, "--new", FAKE_NEW, "--data-dir", fake.root],
+      io,
+    );
+    assert.equal(code, 4);
+    assert.match(stderr.buf, /destination already has file with same relative path/);
   });
 });
 

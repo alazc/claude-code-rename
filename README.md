@@ -25,7 +25,7 @@ No. Four guarantees, in order of how much they matter:
 
 - **Dry-run is the default.** `claude-code-rename` previews every file and every substitution before any write. You opt in with `--apply`.
 - **Every write is atomic.** Each transcript is written to a sibling temp file and then renamed into place. A crash mid-run cannot leave a file half-written.
-- **Refuse-to-clobber.** If the destination already has a Claude Code project folder, the tool exits with an error rather than merging.
+- **Merge instead of clobber.** If the destination encoded folder already exists (because you started a Claude session there after the rename), `claude-code-rename` copies the source transcripts in alongside the existing ones rather than deleting anything. Source folder is preserved.
 - **Backup is one flag away.** `--backup` copies the whole project folder to a sibling timestamped directory before any modification.
 
 ## Can I undo it?
@@ -87,10 +87,20 @@ The fix has three parts that must all happen:
 
 `claude-code-rename` does all three. Full technical spec lives in [PROBLEM.md](PROBLEM.md).
 
+## Two modes: rename vs merge
+
+The tool picks one of two modes automatically based on whether the new encoded folder already exists.
+
+**RENAME mode** (destination encoded folder does NOT exist): rewrite transcripts in place, then rename the folder. The classic "I renamed my project, fix `/resume`" case.
+
+**MERGE mode** (destination encoded folder already exists): copy source transcripts into the destination with paths rewritten, concatenate the two `sessions-index.json` files, leave the source folder intact. This is the case when you've already run `claude` in the renamed/copied directory before running this tool — Claude Code started a fresh project folder there, and you want both histories combined. After merging, both source and destination projects continue independently; the migrated transcripts are available in destination via `/resume`.
+
+You don't pick the mode — it's determined by what's on disk. The dry-run preview shows which mode will run before any change.
+
 ## What this tool will not do
 
 - **Move a project across machines or operating systems.** Path conventions differ between Unix and Windows; cross-OS migration is a different tool.
-- **Merge two project histories.** If the destination encoded folder already exists, the tool refuses. Delete or move the conflicting folder yourself first.
+- **Merge with a UUID collision.** If a source transcript has the same UUID-named filename as one already in the destination, the tool refuses with exit 4 rather than overwriting. Astronomically unlikely for UUID-v4 names, but failing loudly is the right move. Rename or remove the conflicting destination file yourself first.
 - **Recover deleted transcripts.** The old project data must still exist on disk under its old encoded name. If you deleted the folder, this tool can't help.
 - **Update server-side state at Anthropic.** There isn't any to update. Claude Code keys projects entirely on the local cwd.
 

@@ -110,9 +110,23 @@ interface SessionsIndexEntry {
 }
 
 interface SessionsIndex {
+  version?: unknown;
   originalPath?: unknown;
   entries?: unknown;
   [k: string]: unknown;
+}
+
+/**
+ * Rewritten sessions-index entries plus the parsed version field.
+ *
+ * Returned by `rewriteSessionsIndexEntries` for the merge-mode path in
+ * cli.ts. The caller concatenates these entries with the destination's
+ * existing entries, picks a merged version, and serializes.
+ */
+export interface RewrittenSessionsIndex {
+  version: number | undefined;
+  entries: SessionsIndexEntry[];
+  warnings: SessionsIndexWarning[];
 }
 
 /**
@@ -211,4 +225,80 @@ export function rewriteSessionsIndex(
   }
 
   return { content: JSON.stringify(parsed, null, 2), warnings };
+}
+
+/**
+ * Merge-mode helper: parse a sessions-index.json and rewrite its entries'
+ * path-bearing fields (projectPath, fullPath) per the same contract as
+ * `rewriteSessionsIndex`, but return the parsed entries + version WITHOUT
+ * serializing. The caller (cli.ts merge path) concatenates these entries with
+ * the destination index's existing entries and serializes once.
+ *
+ * Defensive checks are softer than `rewriteSessionsIndex`: the top-level
+ * `originalPath` is informational only here (the merged index will use the
+ * destination's NEW_PATH as `originalPath` regardless). If `originalPath`
+ * mismatches both OLD and NEW, we still surface a warning so the caller can
+ * inform the user. Per-entry projectPath mismatches yield warnings, never
+ * throws (mirroring the recoverable-warning policy).
+ */
+export function rewriteSessionsIndexEntries(
+  content: string,
+  oldPath: string,
+  newPath: string,
+  oldEncoded: string,
+  newEncoded: string,
+): RewrittenSessionsIndex {
+  const parsed = JSON.parse(content) as SessionsIndex;
+  const warnings: SessionsIndexWarning[] = [];
+
+  // Validate originalPath defensively; surface a warning rather than throw,
+  // because in merge mode the source index is being absorbed into the
+  // destination's index — small mismatches shouldn't abort the whole merge.
+  const observed = parsed.originalPath;
+  if (typeof observed === "string" && observed !== oldPath && observed !== newPath) {
+    warnings.push({
+      entryIndex: -1,
+      field: 'projectPath',
+      observed: `originalPath="${observed}"`,
+    });
+  }
+
+  const rawEntries = parsed.entries;
+  const sourceEntries: SessionsIndexEntry[] = Array.isArray(rawEntries)
+    ? (rawEntries as SessionsIndexEntry[])
+    : [];
+
+  const out: SessionsIndexEntry[] = [];
+  for (let i = 0; i < sourceEntries.length; i += 1) {
+    const entry = sourceEntries[i];
+    if (entry === undefined || entry === null || typeof entry !== "object") continue;
+    // Shallow-clone so we don't mutate caller-provided JSON in place.
+    const clone: SessionsIndexEntry = { ...entry };
+
+    const projectPath = clone.projectPath;
+    if (typeof projectPath === "string") {
+      if (projectPath === oldPath) {
+        clone.projectPath = newPath;
+      } else if (projectPath === newPath) {
+        // already at NEW; leave as-is
+      } else {
+        warnings.push({
+          entryIndex: i,
+          field: 'projectPath',
+          observed: projectPath,
+        });
+      }
+    }
+
+    const fullPath = clone.fullPath;
+    if (typeof fullPath === "string") {
+      const { result } = substituteWithCursor(fullPath, oldEncoded, newEncoded);
+      clone.fullPath = result;
+    }
+
+    out.push(clone);
+  }
+
+  const versionVal = typeof parsed.version === "number" ? parsed.version : undefined;
+  return { version: versionVal, entries: out, warnings };
 }
