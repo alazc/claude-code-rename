@@ -1,5 +1,6 @@
-import { promises as fs } from "node:fs";
+import { promises as fs, createReadStream } from "node:fs";
 import * as path from "node:path";
+import * as readline from "node:readline";
 
 export type Orphan = {
   encodedFolder: string;
@@ -101,7 +102,8 @@ async function resolveClaimedCwd(folderPath: string): Promise<CwdResult> {
     if (typeof original === "string" && original.length > 0) {
       return { ok: true, cwd: original, source: "sessions-index" };
     }
-    // Fall through to jsonl scan if index is well-formed but lacks originalPath.
+    // Index parsed but originalPath missing/not-a-string: refuse fallthrough.
+    return { ok: false, reason: "missing-originalPath-field" };
   } else if (indexStat && !indexStat.isFile()) {
     // Index path exists but isn't a regular file (e.g. directory) — surface as error.
     throw new Error(`${SESSIONS_INDEX} is not a regular file`);
@@ -154,27 +156,39 @@ async function collectJsonlFiles(folderPath: string): Promise<string[]> {
 }
 
 async function firstCwdFromJsonl(jsonlPath: string): Promise<string | null> {
-  let content: string;
+  let stream: import("node:fs").ReadStream;
   try {
-    content = await fs.readFile(jsonlPath, "utf8");
+    stream = createReadStream(jsonlPath, { encoding: "utf8" });
   } catch {
     return null;
   }
-  const lines = content.split(/\r?\n/);
-  for (const line of lines) {
-    if (!line) continue;
-    let obj: unknown;
-    try {
-      obj = JSON.parse(line);
-    } catch {
-      continue;
+  const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+  let found: string | null = null;
+  try {
+    for await (const line of rl) {
+      if (!line) continue;
+      let obj: unknown;
+      try {
+        obj = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (obj && typeof obj === "object" && "cwd" in obj) {
+        const cwd = (obj as { cwd: unknown }).cwd;
+        if (typeof cwd === "string" && cwd.length > 0) {
+          found = cwd;
+          rl.close();
+          break;
+        }
+      }
     }
-    if (obj && typeof obj === "object" && "cwd" in obj) {
-      const cwd = (obj as { cwd: unknown }).cwd;
-      if (typeof cwd === "string" && cwd.length > 0) return cwd;
-    }
+  } catch {
+    return null;
+  } finally {
+    rl.close();
+    stream.destroy();
   }
-  return null;
+  return found;
 }
 
 async function pathExists(p: string): Promise<boolean> {
