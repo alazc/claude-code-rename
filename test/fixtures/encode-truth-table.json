@@ -1,0 +1,323 @@
+{
+  "note": "Empirical encoding truth table captured from real Claude Code data dir on Windows. Each entry: cwd as recorded by CC vs the encoded folder name CC created. Use as fixture for encode.ts property tests.",
+  "capturedAt": "2026-05-12",
+  "host": "windows",
+  "ccVersion": "2.1.139",
+  "entries": [
+    {
+      "encoded": "C--Users-alazc",
+      "cwd": "C:\\Users\\alazc",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-claude-spotify",
+      "cwd": "C:\\Users\\alazc\\claude\\spotify",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-id-photo-tile",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\id photo tile",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-trip",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\trip",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Colab-robotics",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Colab robotics",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Colab-robotics-hw2",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Colab robotics\\hw2",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Comp-Imaging-HW2",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Comp Imaging\\HW2",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Comp-Imaging-HW3-blank",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Comp Imaging\\HW3-blank",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-claude",
+      "cwd": "C:\\Users\\alazc\\claude",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-claude-astack",
+      "cwd": "C:\\Users\\alazc\\claude\\astack",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-claude-darkness",
+      "cwd": "C:\\Users\\alazc\\claude\\darkness",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-claude-momenceDownloader",
+      "cwd": "C:\\Users\\alazc\\claude\\momenceDownloader",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-claude-poppy-flux-LoRA",
+      "cwd": "C:\\Users\\alazc\\claude\\poppy-flux-LoRA",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-claude-t2i",
+      "cwd": "C:\\Users\\alazc\\claude\\t2i",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-claude-temp",
+      "cwd": "C:\\Users\\alazc\\claude\\temp",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-alis-w-makedir",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\alis w makedir",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-another13",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\another13",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-autozoom",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\autozoom",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-ccRenamer",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\ccRenamer",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-dreamtree",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\dreamtree",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-ffmpeg-skilll",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\ffmpeg skilll",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-matlab-cc",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\matlab-cc",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-prajnaDownloader",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\prajnaDownloader",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-rclick-yolo",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\rclick-yolo",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-repo2notion",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\repo2notion",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-substackDownloader",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\substackDownloader",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-temp",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\temp",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-claude-tilingTree",
+      "cwd": "C:\\Users\\alazc\\Documents\\claude\\tilingTree",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Communications-CV-Resources-master-CV-apr-15---claud-fix-attempt",
+      "cwd": "C:\\Users\\alazc\\Documents\\Communications\\CV_Resources-master\\CV apr 15 - claud fix attempt",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-MIT-Bistable-data-needleTipAnalysis",
+      "cwd": "C:\\Users\\alazc\\Documents\\MIT\\Bistable\\data\\needleTipAnalysis",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-MIT-Bistable-Oxalis---videos-for-claude",
+      "cwd": "C:\\Users\\alazc\\Documents\\MIT\\Bistable\\Oxalis - videos\\for claude",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-MIT-Bistable-seedCT-analysisPoC",
+      "cwd": "C:\\Users\\alazc\\Documents\\MIT\\Bistable\\seedCT-analysisPoC",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Papers-please-Tax-2025",
+      "cwd": "C:\\Users\\alazc\\Documents\\Papers please\\Tax\\2025",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Papers-please-Tax-2025-state",
+      "cwd": "C:\\Users\\alazc\\Documents\\Papers please\\Tax\\2025\\state",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Colab-robotics-collaborative-robotics-2026",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Colab robotics\\collaborative-robotics-2026",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Colab-robotics-hw4",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Colab robotics\\hw4",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Colab-robotics-indivd-project-report",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Colab robotics\\indivd project report",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Colab-robotics-website",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Colab robotics\\website",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Colab-robotics-website---transfer",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Colab robotics\\website - transfer",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Comp-Imaging-diffusion-project",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Comp Imaging\\diffusion_project",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Comp-Imaging-hw-solutions",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Comp Imaging\\hw solutions",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Comp-Imaging-HW4-HW4",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Comp Imaging\\HW4\\HW4",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Comp-Imaging-HW6",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Comp Imaging\\HW6",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-course-plan",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\course plan",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-cs224r-hw2",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\cs224r\\hw2",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-cs224r-hw3",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\cs224r\\hw3",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-cs224r-project",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\cs224r\\project",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-cs224r-project-default-proj",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\cs224r\\project\\default_proj",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Gfx-visual-graphical-sys-4",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Gfx visual graphical sys\\4",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Gfx-visual-graphical-sys-monopoly-project",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Gfx visual graphical sys\\monopoly project",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Gfx-visual-graphical-sys-monopoly-project-CS348K-proj",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Gfx visual graphical sys\\monopoly project\\CS348K-proj",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Gfx-visual-graphical-sys-projectProposal",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Gfx visual graphical sys\\projectProposal",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Gfx-visual-graphical-sys-style-transfer-v1",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Gfx visual graphical sys\\style-transfer\\v1",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Haptics",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Haptics",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Haptics-hw2",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Haptics\\hw2",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Haptics-hw2-solution",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Haptics\\hw2\\solution",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Haptics-hw3",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Haptics\\hw3",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Haptics-hw4",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Haptics\\hw4",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-Haptics-hw5",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\Haptics\\hw5",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Stanford-other-classes-general-game-playing",
+      "cwd": "C:\\Users\\alazc\\Documents\\Stanford\\other classes\\general game playing",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Music",
+      "cwd": "C:\\Users\\alazc\\Music",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Videos",
+      "cwd": "C:\\Users\\alazc\\Videos",
+      "source": "jsonl.cwd"
+    }
+  ]
+}

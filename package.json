@@ -1,0 +1,31 @@
+{
+  "name": "claude-code-rename",
+  "version": "0.1.0",
+  "description": "Recover Claude Code /resume after a project folder rename or move.",
+  "type": "module",
+  "bin": {
+    "claude-code-rename": "bin/ccr.js",
+    "ccr": "bin/ccr.js"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test --import tsx test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "fast-check": "^3.23.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
