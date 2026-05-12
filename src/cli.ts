@@ -437,8 +437,14 @@ async function runRename(
     }
   }
 
-  // Manifest resume check
-  const manifestPath = path.join(oldFolder, MANIFEST_NAME);
+  // Manifest resume check. In merge mode the manifest lives in the
+  // DESTINATION folder so the source is touched by zero writes for the
+  // entire operation. In rename mode it stays in source per amendment A1
+  // (source folder is the canonical target until the rename succeeds).
+  const manifestPath = path.join(
+    mode === "merge" ? newFolder : oldFolder,
+    MANIFEST_NAME,
+  );
   const existingManifest = await readManifest(manifestPath);
   if (existingManifest) {
     if (
