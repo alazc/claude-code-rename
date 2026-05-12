@@ -71,7 +71,17 @@ export async function backupProjectFolder(folder: string): Promise<string> {
 
 const SKIP_FILE_NAMES = new Set([".ccrenamer-progress.json"]);
 
-async function* walkJsonlImpl(dir: string): AsyncGenerator<string> {
+function qualifiesAsJsonl(name: string): boolean {
+  if (SKIP_FILE_NAMES.has(name)) return false;
+  if (name.endsWith(".tmp")) return false;
+  if (!name.endsWith(".jsonl")) return false;
+  return true;
+}
+
+async function* walkJsonlImpl(
+  dir: string,
+  visited: Set<string>,
+): AsyncGenerator<string> {
   let entries: Awaited<ReturnType<typeof fs.readdir>>;
   try {
     entries = await fs.readdir(dir, { withFileTypes: true });
@@ -83,14 +93,39 @@ async function* walkJsonlImpl(dir: string): AsyncGenerator<string> {
     if (name.startsWith(".")) continue;
     const full = path.join(dir, name);
     if (entry.isDirectory()) {
-      yield* walkJsonlImpl(full);
+      yield* walkJsonlImpl(full, visited);
       continue;
     }
-    if (!entry.isFile()) continue;
-    if (SKIP_FILE_NAMES.has(name)) continue;
-    if (name.endsWith(".tmp")) continue;
-    if (!name.endsWith(".jsonl")) continue;
-    yield full;
+    if (entry.isFile()) {
+      if (!qualifiesAsJsonl(name)) continue;
+      yield full;
+      continue;
+    }
+    // Anything that isn't a plain file or directory (most commonly a
+    // symlink) — resolve via stat and branch on the resolved type. stat
+    // follows symlinks; broken links throw ENOENT and we treat them as
+    // skip-silently, matching the rest of the walker's leniency.
+    let resolved: Awaited<ReturnType<typeof fs.stat>>;
+    try {
+      resolved = await fs.stat(full);
+    } catch {
+      continue;
+    }
+    if (resolved.isDirectory()) {
+      const key = `${resolved.dev}:${resolved.ino}`;
+      if (visited.has(key)) continue;
+      visited.add(key);
+      yield* walkJsonlImpl(full, visited);
+      continue;
+    }
+    if (resolved.isFile()) {
+      if (!qualifiesAsJsonl(name)) continue;
+      // Yield the symlink path (under the caller's root), not the resolved
+      // target — callers operate on paths under ~/.claude/projects/.
+      yield full;
+      continue;
+    }
+    // Socket, FIFO, block/char device, etc. — skip silently.
   }
 }
 
@@ -99,9 +134,14 @@ async function* walkJsonlImpl(dir: string): AsyncGenerator<string> {
  * `<uuid>/subagents/`). Skips dotfiles, dot-directories, `*.tmp`,
  * `.ccrenamer-progress.json`, and any non-`.jsonl` file. Best-effort:
  * unreadable subdirectories are silently skipped rather than thrown.
+ *
+ * Follows symlinks (both file and directory). A visited-inode set
+ * (`${dev}:${ino}`) prevents infinite loops on cyclic directory symlinks;
+ * each resolved directory is walked at most once. Yielded paths are the
+ * link paths under `folder`, never the resolved targets.
  */
 export async function* walkJsonl(folder: string): AsyncGenerator<string> {
-  yield* walkJsonlImpl(folder);
+  yield* walkJsonlImpl(folder, new Set<string>());
 }
 
 /**

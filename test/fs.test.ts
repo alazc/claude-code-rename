@@ -285,6 +285,76 @@ describe("walkJsonl", () => {
     const found = await collect(walkJsonl(folder));
     assert.deepEqual(found, []);
   });
+
+  it("follows a symlinked subdirectory and yields jsonls under it", async (t) => {
+    const folder = path.join(root, "symlink-dir");
+    const realDir = path.join(root, "symlink-target");
+    await fs.mkdir(folder, { recursive: true });
+    await fs.mkdir(realDir, { recursive: true });
+    await fs.writeFile(path.join(realDir, "linked.jsonl"), "");
+    await fs.writeFile(path.join(folder, "plain.jsonl"), "");
+
+    try {
+      await fs.symlink(realDir, path.join(folder, "linkdir"), "dir");
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "EPERM" || code === "ENOSYS") {
+        t.skip(
+          `skipping: directory symlinks require admin / developer mode on Windows (${code})`,
+        );
+        return;
+      }
+      throw err;
+    }
+
+    const found = (await collect(walkJsonl(folder))).map((p) => path.basename(p)).sort();
+    assert.deepEqual(found, ["linked.jsonl", "plain.jsonl"]);
+
+    // The yielded path for the linked file should live under the caller's
+    // root (via the link), not under the real target directory.
+    const linked = (await collect(walkJsonl(folder))).find(
+      (p) => path.basename(p) === "linked.jsonl",
+    );
+    assert.ok(linked && linked.startsWith(folder), "yielded path should be under the input folder");
+  });
+
+  it("terminates on a symlink cycle and yields each file at most once", async (t) => {
+    const folder = path.join(root, "symlink-cycle");
+    const dirA = path.join(folder, "A");
+    const dirB = path.join(folder, "B");
+    await fs.mkdir(dirA, { recursive: true });
+    await fs.mkdir(dirB, { recursive: true });
+    await fs.writeFile(path.join(dirA, "a.jsonl"), "");
+    await fs.writeFile(path.join(dirB, "b.jsonl"), "");
+
+    // A/toB -> B, B/toA -> A. Walking either side cycles.
+    try {
+      await fs.symlink(dirB, path.join(dirA, "toB"), "dir");
+      await fs.symlink(dirA, path.join(dirB, "toA"), "dir");
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "EPERM" || code === "ENOSYS") {
+        t.skip(
+          `skipping: directory symlinks require admin / developer mode on Windows (${code})`,
+        );
+        return;
+      }
+      throw err;
+    }
+
+    const found = await collect(walkJsonl(folder));
+    const basenames = found.map((p) => path.basename(p)).sort();
+    // Each file appears at most once — visited-inode dedup kicks in once
+    // the walk re-enters a directory via the cycle.
+    const counts = new Map<string, number>();
+    for (const n of basenames) counts.set(n, (counts.get(n) ?? 0) + 1);
+    for (const [name, c] of counts) {
+      assert.ok(c <= 1, `${name} yielded ${c} times, expected <= 1`);
+    }
+    // Both files should be reachable at least once.
+    assert.ok(basenames.includes("a.jsonl"));
+    assert.ok(basenames.includes("b.jsonl"));
+  });
 });
 
 describe("caseOnlyRename", () => {
