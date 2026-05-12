@@ -4,14 +4,13 @@
 // entry point is `main(argv, io?)`. The optional `io` seam lets tests inject
 // stdio/TTY without monkey-patching `process` globals.
 //
-// Design source of truth:
-//   .gstack/projects/ccRenamer/alazc-unknown-design-20260511-203523.md
-// Amendments honored here: A1 (manifest), A2 (CC-running probe), A3 (backup
-// location — already in fs.ts), A4 (auto-merge empty NEW), C1 (parseArgs),
-// C2 (--apply UX, dry-run to stderr), C3 (sessions-index three-way switch —
-// in rewrite.ts), C4 (exit code split), P1 (backup transparency), X1 (no
-// realpath), X2 (--data-dir override), X3 (OLD⊂NEW gate is a confirmation
-// not a refusal).
+// Design amendments honored here (see DESIGN.md and PROBLEM.md):
+//   A1 manifest, A2 CC-running probe, A3 backup location (in fs.ts), C1
+//   parseArgs, C2 --apply UX with dry-run to stderr, C3 sessions-index
+//   three-way switch (in rewrite.ts), C4 exit-code split, P1 backup
+//   transparency, X1 no realpath, X2 --data-dir override, X3 OLD⊂NEW
+//   confirmation gate, and the merge-mode supersession of the original
+//   A4 auto-merge-empty-NEW heuristic (see "Two modes" in README).
 
 import { promises as fsp, statfsSync } from "node:fs";
 import * as os from "node:os";
