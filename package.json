@@ -1,6 +1,6 @@
 {
   "name": "claude-code-rename",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "CLI to recover Claude Code sessions (e.g. /resume) after renaming, moving, or copying a project folder. Dry-run, atomic, merge-aware.",
   "type": "module",
   "keywords": [
