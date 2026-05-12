@@ -16,6 +16,12 @@ npx claude-code-rename
 
 That command scans `~/.claude/projects/`, finds the orphaned project whose original path no longer exists on disk, and asks where you moved it. Dry-run by default. Nothing is written until you pass `--apply`.
 
+**Already started a new Claude session in the renamed/copied folder?** That's the other case `claude-code-rename` handles. Claude Code created a fresh project folder for the new path; your old transcripts are still under the old encoded folder. Point the tool at both paths and it **merges** — copies the old transcripts (with paths rewritten) into the new folder alongside whatever's already there, leaves the old folder fully intact, and concatenates the two `sessions-index.json` files so `/resume` sees everything. No deletion, no clobber.
+
+```
+npx claude-code-rename --old <original-path> --new <renamed-or-copied-path> --apply --backup
+```
+
 <!-- Demo: replace with asciinema embed after first recording -->
 <!-- [![asciicast](https://asciinema.org/a/<ID>.svg)](https://asciinema.org/a/<ID>) -->
 
@@ -30,15 +36,17 @@ No. Four guarantees, in order of how much they matter:
 
 ## Can I undo it?
 
-If you ran with `--backup`, restore the timestamped backup folder. If you didn't, run the tool again with the paths swapped:
+**Always**: if you ran with `--backup`, restore the timestamped backups from `~/.claude/projects/.ccrenamer-backups/`. Each `--apply` run creates one (rename mode) or two (merge mode, one per folder) timestamped copies. Use them as the authoritative pre-apply state.
+
+**Rename mode (no backup)**: the substitution is symmetric — re-run with paths swapped to reverse it:
 
 ```
 claude-code-rename --old <new-path> --new <old-path> --apply
 ```
 
-The substitution is symmetric. The same `--apply` that did the rename can reverse it.
+**Merge mode (no backup)**: not reliably reversible. Merge is additive on the destination; re-running with paths swapped would *also* be merge mode and would copy the (already-merged) destination jsonls back into the source folder, corrupting it. Use `--backup` for merge applies if you might want to roll back.
 
-## Recovering sessions after a folder rename
+## Recovering or transferring sessions
 
 Two flows. The first is interactive and the one you probably want:
 
@@ -75,27 +83,39 @@ ccr --help
 
 ## How Claude Code stores projects on disk
 
-Claude Code identifies a project by its current working directory and stores its transcripts under `~/.claude/projects/<encoded-cwd>/`. The encoding replaces every `/`, `\`, `:`, and space with `-`, so `C:\Users\me\my project` becomes `C--Users-me-my-project`.
+Claude Code identifies a project by its current working directory and stores its transcripts under `~/.claude/projects/<encoded-cwd>/`. The encoding replaces every `/`, `\`, `:`, space, and `_` with `-`, so `C:\Users\me\my_project folder` becomes `C--Users-me-my-project-folder`. (The underscore rule is empirically verified against CC 2.1.139 and was missed in the original spec.)
 
 When you rename the source folder, Claude Code recomputes the encoded name from the new cwd, finds no matching project folder, and starts fresh. The old transcripts still sit under the old encoded name — invisible to `/resume`.
 
-The fix has three parts that must all happen:
+Three pieces of state encode the old cwd and must all be updated:
 
-1. Rename the encoded project folder itself.
-2. Rewrite `originalPath` in `sessions-index.json`.
-3. Rewrite every embedded `cwd` value inside every `*.jsonl` transcript, including any under `<session-id>/subagents/`.
+1. The encoded project folder name itself.
+2. The `originalPath` field in `sessions-index.json` (when present — most CC 2.1.x projects don't ship one anymore).
+3. Every embedded `cwd` value inside every `*.jsonl` transcript, including any under `<session-id>/subagents/`. Real transcripts also bake the cwd into tool inputs (`Read.file_path`, `Glob.path`, bash commands), tool outputs (`stdout`), and message text — these are rewritten too, by design.
 
-`claude-code-rename` does all three. Full technical spec lives in [PROBLEM.md](PROBLEM.md).
+`claude-code-rename` handles all three in either mode: **rename mode** updates them in place and renames the folder; **merge mode** writes the rewritten content into the destination folder while leaving the source untouched. Full technical spec lives in [PROBLEM.md](PROBLEM.md).
 
 ## Two modes: rename vs merge
 
-The tool picks one of two modes automatically based on whether the new encoded folder already exists.
+The tool picks one of two modes automatically based on whether the new encoded folder already exists under `~/.claude/projects/`.
 
-**RENAME mode** (destination encoded folder does NOT exist): rewrite transcripts in place, then rename the folder. The classic "I renamed my project, fix `/resume`" case.
+**RENAME mode** (destination encoded folder does NOT exist) — the classic "I renamed my project, fix `/resume`" case. Rewrites transcripts in place, then renames the folder.
 
-**MERGE mode** (destination encoded folder already exists): copy source transcripts into the destination with paths rewritten, concatenate the two `sessions-index.json` files, leave the source folder intact. This is the case when you've already run `claude` in the renamed/copied directory before running this tool — Claude Code started a fresh project folder there, and you want both histories combined. After merging, both source and destination projects continue independently; the migrated transcripts are available in destination via `/resume`.
+**MERGE mode** (destination encoded folder already exists) — you've already started a Claude session in the new path, so CC made a fresh project folder there. Both histories should coexist. Concretely:
 
-You don't pick the mode — it's determined by what's on disk. The dry-run preview shows which mode will run before any change.
+- Source transcripts are **copied** (not moved) into the destination folder with their `cwd` and embedded paths rewritten to point at the new path.
+- Destination's pre-existing transcripts are **preserved untouched**.
+- `sessions-index.json` files are **concatenated** — destination's existing entries first, then the migrated source entries with paths rewritten.
+- **Source folder is byte-identical after `--apply`** — no transcripts modified, no manifest residue, no timestamps disturbed. Running `claude` in the original path still works as before, with its history intact.
+- After merge, both projects continue **independently** from a shared past. New sessions in either path don't propagate to the other.
+
+You don't pick the mode — it's determined by what's on disk. The dry-run preview shows which mode will run before any change, including per-file source→destination mappings for merge mode.
+
+### When merge mode is the right tool
+
+- You copied your project folder (e.g., `autozoom` → `autozoom - Copy`) to fork it, ran `claude` in the copy, and now want the copy to see the original's history too.
+- You renamed the folder and ran `claude` in the new location before realizing `/resume` was empty — CC created a fresh project, and you want to merge the old one in.
+- You're consolidating duplicate work from two related project paths into one canonical destination.
 
 ## What this tool will not do
 
