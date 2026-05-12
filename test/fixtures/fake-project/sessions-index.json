@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "originalPath": "C:\\fake\\project\\path",
+  "entries": [
+    {
+      "sessionId": "00000000-0000-0000-0000-000000000001",
+      "fullPath": "C:\\fake\\encoded-projects\\C--fake-project-path\\00000000-0000-0000-0000-000000000001.jsonl",
+      "projectPath": "C:\\fake\\project\\path",
+      "fileMtime": 1769900000000,
+      "firstPrompt": "synthetic first prompt for session one",
+      "summary": "synthetic summary one",
+      "messageCount": 6,
+      "created": "2026-01-15T10:00:00.000Z",
+      "modified": "2026-01-15T10:05:00.000Z",
+      "gitBranch": "",
+      "isSidechain": false
+    },
+    {
+      "sessionId": "00000000-0000-0000-0000-000000000002",
+      "fullPath": "C:\\fake\\encoded-projects\\C--fake-project-path\\00000000-0000-0000-0000-000000000002.jsonl",
+      "projectPath": "C:\\fake\\project\\path",
+      "fileMtime": 1769910000000,
+      "firstPrompt": "synthetic first prompt for session two",
+      "summary": "synthetic summary two",
+      "messageCount": 7,
+      "created": "2026-01-16T11:00:00.000Z",
+      "modified": "2026-01-16T11:30:00.000Z",
+      "gitBranch": "main",
+      "isSidechain": false
+    },
+    {
+      "sessionId": "00000000-0000-0000-0000-000000000003",
+      "fullPath": "C:\\fake\\encoded-projects\\C--fake-project-path\\00000000-0000-0000-0000-000000000003.jsonl",
+      "projectPath": "C:\\fake\\project\\path",
+      "fileMtime": 1769920000000,
+      "firstPrompt": "synthetic first prompt for session three",
+      "summary": "synthetic summary three (has subagents)",
+      "messageCount": 3,
+      "created": "2026-01-17T12:00:00.000Z",
+      "modified": "2026-01-17T12:10:00.000Z",
+      "gitBranch": "main",
+      "isSidechain": false
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      # Smoke check: dist/ actually emits to the path bin/ccr.js imports,
+      # and the CLI invokes cleanly. Catches build-output drift (e.g. a
+      # tsconfig rootDir change that silently moves dist/cli.js elsewhere)
+      # which typecheck + tests would miss because they run via tsx.
+      - run: npm run build
+      - run: node bin/ccr.js --version
+      - run: node bin/ccr.js --help

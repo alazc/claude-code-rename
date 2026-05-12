@@ -1,0 +1,54 @@
+{
+  "name": "claude-code-rename",
+  "version": "0.1.1",
+  "description": "CLI to recover Claude Code sessions (e.g. /resume) after renaming, moving, or copying a project folder. Dry-run, atomic, merge-aware.",
+  "type": "module",
+  "keywords": [
+    "claude-code",
+    "claude",
+    "anthropic",
+    "cli",
+    "session-recovery",
+    "session-management",
+    "transcript",
+    "rename",
+    "migration",
+    "developer-tools",
+    "resume",
+    "ccr"
+  ],
+  "homepage": "https://github.com/alazc/claude-code-rename#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alazc/claude-code-rename.git"
+  },
+  "bugs": {
+    "url": "https://github.com/alazc/claude-code-rename/issues"
+  },
+  "bin": {
+    "claude-code-rename": "bin/ccr.js",
+    "ccr": "bin/ccr.js"
+  },
+  "files": [
+    "dist/",
+    "bin/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test --import tsx test/encode.test.ts test/rewrite.test.ts test/scan.test.ts test/fs.test.ts test/claudeDir.test.ts test/cli.test.ts test/e2e/crash-resume.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "fast-check": "^4.8.0",
+    "tsx": "^4.19.2",
+    "typescript": "^6.0.3"
+  }
+}

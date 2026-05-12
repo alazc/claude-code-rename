@@ -1,0 +1,132 @@
+{
+  "note": "Representative encoder cases. Each entry pairs a cwd with the encoded folder name Claude Code creates. Cases are synthetic but cover the character classes the encoder handles: drive colon, backslash separators, spaces, underscores, embedded hyphens, mixed case, ' - ' collapsing to '---', and deep nesting. Verified against Claude Code v2.1.139's encoder rule.",
+  "ccVersion": "2.1.139",
+  "host": "windows",
+  "entries": [
+    {
+      "encoded": "C--Users-alazc",
+      "cwd": "C:\\Users\\alazc",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-Music",
+      "cwd": "C:\\Users\\alazc\\Music",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Videos",
+      "cwd": "C:\\Users\\alazc\\Videos",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-projects-alpha",
+      "cwd": "C:\\Users\\alazc\\projects\\alpha",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-projects-bravo-charlie",
+      "cwd": "C:\\Users\\alazc\\projects\\bravo-charlie",
+      "source": "sessions-index.originalPath"
+    },
+    {
+      "encoded": "C--Users-alazc-projects-delta-echo",
+      "cwd": "C:\\Users\\alazc\\projects\\delta_echo",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-projects-my-project",
+      "cwd": "C:\\Users\\alazc\\projects\\my project",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-projects-camelCase",
+      "cwd": "C:\\Users\\alazc\\projects\\camelCase",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-projects-PascalCase",
+      "cwd": "C:\\Users\\alazc\\projects\\PascalCase",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-projects-UPPER",
+      "cwd": "C:\\Users\\alazc\\projects\\UPPER",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-projects-r2",
+      "cwd": "C:\\Users\\alazc\\projects\\r2",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-projects-2025-report",
+      "cwd": "C:\\Users\\alazc\\projects\\2025-report",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-workspace-sub-project-v1",
+      "cwd": "C:\\Users\\alazc\\Documents\\workspace\\sub project\\v1",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Workspace-A-module---alpha",
+      "cwd": "C:\\Users\\alazc\\Documents\\Workspace A\\module - alpha",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-sample-dir-nested-file",
+      "cwd": "C:\\Users\\alazc\\Documents\\sample_dir\\nested_file",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-Mixed-Case-Path-Build-3-blank",
+      "cwd": "C:\\Users\\alazc\\Documents\\Mixed Case Path\\Build-3-blank",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-complex-name-v2",
+      "cwd": "C:\\Users\\alazc\\Documents\\complex-name_v2",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-folder-for-files",
+      "cwd": "C:\\Users\\alazc\\Documents\\folder\\for files",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-DATA-DATA",
+      "cwd": "C:\\Users\\alazc\\Documents\\DATA\\DATA",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-deep-nested-path-segments-v2",
+      "cwd": "C:\\Users\\alazc\\Documents\\deep\\nested\\path\\segments\\v2",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-project-alpha-sub-project-beta-gamma",
+      "cwd": "C:\\Users\\alazc\\Documents\\project alpha\\sub project beta\\gamma",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-team-a-team-b---special",
+      "cwd": "C:\\Users\\alazc\\Documents\\team a\\team b - special",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-folder-with-many-underscores",
+      "cwd": "C:\\Users\\alazc\\Documents\\folder_with_many_underscores",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-trailing-number-13",
+      "cwd": "C:\\Users\\alazc\\Documents\\trailing-number-13",
+      "source": "jsonl.cwd"
+    },
+    {
+      "encoded": "C--Users-alazc-Documents-package---v1",
+      "cwd": "C:\\Users\\alazc\\Documents\\package - v1",
+      "source": "jsonl.cwd"
+    }
+  ]
+}

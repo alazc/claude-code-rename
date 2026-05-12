@@ -1,0 +1,7 @@
+{"type":"last-prompt","sessionId":"00000000-0000-0000-0000-000000000001","timestamp":"2026-01-15T10:00:00.000Z","prompt":"synthetic first prompt for session one"}
+{"event":"session-start","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-15T10:00:01.000Z","sessionId":"00000000-0000-0000-0000-000000000001"}
+{"event":"user-message","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-15T10:00:05.000Z","message":{"role":"user","content":[{"type":"text","text":"please list files in C:\\fake\\project\\path and tell me what is there"}]}}
+{"event":"tool-use","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-15T10:00:06.000Z","message":{"role":"assistant","content":[{"type":"tool_use","name":"Bash","input":{"command":"ls C:\\fake\\project\\path"}}]}}
+{"event":"tool-result","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-15T10:00:07.000Z","toolUseResult":{"stdout":"listing of C:\\fake\\project\\path:\nREADME.md\nsrc\\\nlogs at C:\\fake\\project\\path\\logs","stderr":""}}
+{"event":"assistant-message","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-15T10:00:10.000Z","message":{"role":"assistant","content":[{"type":"text","text":"The directory C:\\fake\\project\\path contains a README and a src folder."}]}}
+{"event":"session-end","cwd":"C:\\fake\\project\\path","timestamp":"2026-01-15T10:05:00.000Z"}
