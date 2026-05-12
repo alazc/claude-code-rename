@@ -47,6 +47,14 @@ function substituteWithCursor(
   for (;;) {
     const idx = out.indexOf(needle, cursor);
     if (idx === -1) break;
+    // Cross-call idempotency: if `replacement` already sits at idx, this
+    // span is an already-rewritten NEW that happens to start with OLD
+    // (only possible when OLD is a prefix of NEW). Skip past it without
+    // re-replacing so a second pass on already-rewritten content is a no-op.
+    if (out.startsWith(replacement, idx)) {
+      cursor = idx + replacement.length;
+      continue;
+    }
     out = out.slice(0, idx) + replacement + out.slice(idx + needle.length);
     cursor = idx + replacement.length;
     occurrences += 1;
