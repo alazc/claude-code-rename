@@ -135,7 +135,7 @@ describe("rewriteSessionsIndex", () => {
 
   it("rewrites all three path-bearing fields on the happy path", () => {
     const out = rewriteSessionsIndex(buildIndex(), oldPath, newPath, oldEncoded, newEncoded);
-    const parsed = JSON.parse(out) as {
+    const parsed = JSON.parse(out.content) as {
       originalPath: string;
       entries: Array<{ projectPath: string; fullPath: string }>;
     };
@@ -148,6 +148,14 @@ describe("rewriteSessionsIndex", () => {
       // Non-encoded segments preserved.
       assert.ok(e.fullPath.startsWith("C:\\Users\\me\\.claude\\projects\\"));
     }
+    // No mismatched entries → warnings is an empty array (not undefined).
+    assert.deepEqual(out.warnings, []);
+  });
+
+  it("returns an empty warnings array (not undefined) when all entries match", () => {
+    const out = rewriteSessionsIndex(buildIndex(), oldPath, newPath, oldEncoded, newEncoded);
+    assert.ok(Array.isArray(out.warnings), "warnings must be an array");
+    assert.equal(out.warnings.length, 0);
   });
 
   it("is a deep-equal no-op when originalPath already equals newPath (resume case)", () => {
@@ -168,7 +176,8 @@ describe("rewriteSessionsIndex", () => {
       2,
     );
     const out = rewriteSessionsIndex(resumed, oldPath, newPath, oldEncoded, newEncoded);
-    assert.deepEqual(JSON.parse(out), JSON.parse(resumed));
+    assert.deepEqual(JSON.parse(out.content), JSON.parse(resumed));
+    assert.deepEqual(out.warnings, []);
   });
 
   it("throws OriginalPathMismatchError when originalPath is some third value", () => {
@@ -206,7 +215,8 @@ describe("rewriteSessionsIndex", () => {
     );
   });
 
-  it("warns (does not throw) when an entry's projectPath mismatches", () => {
+  it("returns a structured warning (does not throw) when an entry's projectPath mismatches", () => {
+    const stale = "C:\\Users\\me\\some-stale-other-path";
     const mismatched = JSON.stringify(
       {
         version: 1,
@@ -215,7 +225,7 @@ describe("rewriteSessionsIndex", () => {
           {
             sessionId: "s1",
             fullPath: `C:\\Users\\me\\.claude\\projects\\${oldEncoded}\\s1.jsonl`,
-            projectPath: "C:\\Users\\me\\some-stale-other-path",
+            projectPath: stale,
             messageCount: 4,
           },
         ],
@@ -224,32 +234,23 @@ describe("rewriteSessionsIndex", () => {
       2,
     );
 
-    const originalWarn = console.warn;
-    const warnings: string[] = [];
-    console.warn = (...args: unknown[]) => {
-      warnings.push(args.map((a) => String(a)).join(" "));
+    const out = rewriteSessionsIndex(mismatched, oldPath, newPath, oldEncoded, newEncoded);
+    const parsed = JSON.parse(out.content) as {
+      originalPath: string;
+      entries: Array<{ projectPath: string; fullPath: string }>;
     };
-    try {
-      const out = rewriteSessionsIndex(mismatched, oldPath, newPath, oldEncoded, newEncoded);
-      const parsed = JSON.parse(out) as {
-        originalPath: string;
-        entries: Array<{ projectPath: string; fullPath: string }>;
-      };
-      // Top-level still rewritten.
-      assert.equal(parsed.originalPath, newPath);
-      // Entry projectPath untouched (mismatched, so preserved as-is).
-      assert.equal(parsed.entries[0]?.projectPath, "C:\\Users\\me\\some-stale-other-path");
-      // fullPath still rewritten unconditionally.
-      assert.ok(parsed.entries[0]?.fullPath.includes(newEncoded));
-      // Greppable warning emitted.
-      assert.equal(warnings.length, 1);
-      assert.ok(
-        warnings[0]?.startsWith("[ccr] sessions-index entry 0: projectPath mismatch"),
-        `unexpected warning: ${warnings[0]}`,
-      );
-    } finally {
-      console.warn = originalWarn;
-    }
+    // Top-level still rewritten.
+    assert.equal(parsed.originalPath, newPath);
+    // Entry projectPath untouched (mismatched, so preserved as-is).
+    assert.equal(parsed.entries[0]?.projectPath, stale);
+    // fullPath still rewritten unconditionally.
+    assert.ok(parsed.entries[0]?.fullPath.includes(newEncoded));
+    // Structured warning surfaced.
+    assert.equal(out.warnings.length, 1);
+    const w = out.warnings[0];
+    assert.equal(w?.entryIndex, 0);
+    assert.equal(w?.field, "projectPath");
+    assert.equal(w?.observed, stale);
   });
 
   it("safely rewrites fullPath when OLD_ENCODED is a prefix of NEW_ENCODED", () => {
@@ -273,7 +274,7 @@ describe("rewriteSessionsIndex", () => {
     );
 
     const out = rewriteSessionsIndex(idx, oldPath, newPath, prefixOld, prefixNew);
-    const parsed = JSON.parse(out) as {
+    const parsed = JSON.parse(out.content) as {
       entries: Array<{ fullPath: string }>;
     };
     const fp = parsed.entries[0]?.fullPath ?? "";
@@ -293,7 +294,7 @@ describe("rewriteSessionsIndex", () => {
       2,
     );
     const out = rewriteSessionsIndex(minimal, oldPath, newPath, oldEncoded, newEncoded);
-    const parsed = JSON.parse(out) as { originalPath: string; entries?: unknown };
+    const parsed = JSON.parse(out.content) as { originalPath: string; entries?: unknown };
     assert.equal(parsed.originalPath, newPath);
     // Either absent, or coerced to []; both are acceptable per the spec.
     if (parsed.entries !== undefined) {

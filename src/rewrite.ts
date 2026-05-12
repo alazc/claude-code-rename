@@ -108,6 +108,17 @@ interface SessionsIndex {
 }
 
 /**
+ * Structured warning for an entry-level path mismatch surfaced by
+ * `rewriteSessionsIndex`. Returned (not thrown, not logged) so the caller —
+ * typically the CLI — owns presentation and user messaging.
+ */
+export type SessionsIndexWarning = {
+  entryIndex: number;
+  field: 'projectPath';
+  observed: string;
+};
+
+/**
  * Parse-then-serialize rewriter for sessions-index.json. See the module
  * header for the three-field rewrite contract (G2).
  *
@@ -117,9 +128,10 @@ interface SessionsIndex {
  *   - equals newPath → no-op (resume case from amendment A1)
  *   - otherwise → throw OriginalPathMismatchError
  *
- * Per-entry projectPath mismatches log a structured warning but do NOT throw
- * (missing-entries are recoverable). Per-entry fullPath rewrites apply
- * OLD_ENCODED → NEW_ENCODED unconditionally; absence is silent.
+ * Per-entry projectPath mismatches are surfaced as structured warnings in the
+ * returned `warnings` array (not thrown, not logged) so the caller owns
+ * presentation. Per-entry fullPath rewrites apply OLD_ENCODED → NEW_ENCODED
+ * unconditionally; absence is silent.
  *
  * Re-serialized via `JSON.stringify(obj, null, 2)`. V8 preserves key order in
  * practice; whitespace formatting may differ from the input.
@@ -130,8 +142,9 @@ export function rewriteSessionsIndex(
   newPath: string,
   oldEncoded: string,
   newEncoded: string,
-): string {
+): { content: string; warnings: SessionsIndexWarning[] } {
   const parsed = JSON.parse(content) as SessionsIndex;
+  const warnings: SessionsIndexWarning[] = [];
 
   const observed = parsed.originalPath;
   if (typeof observed !== "string") {
@@ -169,10 +182,12 @@ export function rewriteSessionsIndex(
       } else if (projectPath === newPath) {
         // Resume case: leave as-is.
       } else {
-        // Recoverable: log structured greppable warning, do not throw.
-        console.warn(
-          `[ccr] sessions-index entry ${i}: projectPath mismatch (observed="${projectPath}", expectedOld="${oldPath}", expectedNew="${newPath}")`,
-        );
+        // Recoverable: surface a structured warning to the caller; do not throw.
+        warnings.push({
+          entryIndex: i,
+          field: 'projectPath',
+          observed: projectPath,
+        });
       }
     }
 
@@ -187,5 +202,5 @@ export function rewriteSessionsIndex(
     parsed.entries = entries;
   }
 
-  return JSON.stringify(parsed, null, 2);
+  return { content: JSON.stringify(parsed, null, 2), warnings };
 }
