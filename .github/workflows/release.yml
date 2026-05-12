@@ -16,7 +16,7 @@ jobs:
     name: publish to npm + create GitHub Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # Full history is needed so action-gh-release can generate notes from
           # commits since the previous tag.
