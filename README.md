@@ -113,7 +113,7 @@ You don't pick the mode — it's determined by what's on disk. The dry-run previ
 
 ### When merge mode is the right tool
 
-- You copied your project folder (e.g., `autozoom` → `autozoom - Copy`) to fork it, ran `claude` in the copy, and now want the copy to see the original's history too.
+- You copied your project folder (e.g., `moneyMachine` → `moneyMachine-copy`) to fork it, ran `claude` in the copy, and now want the copy to see the original's history too.
 - You renamed the folder and ran `claude` in the new location before realizing `/resume` was empty — CC created a fresh project, and you want to merge the old one in.
 - You're consolidating duplicate work from two related project paths into one canonical destination.
 
